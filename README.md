@@ -10,6 +10,16 @@ GitHub 项目仓库：[crystal574-star/builderspace-mascot](https://github.com/c
 
 第一阶段仍然只做屏幕表情：采购一块带 PSRAM 的 ESP32-S3 开发板，加一块约 2 英寸 SPI 彩屏，完成脸、眨眼、视线和表情切换。触摸、无线、echo、语音和活动样机按阶段增加。现有 C3 保留用于灯带实验；P4 在同一 S3 上评审音频组合，避免计划性换板。初次烧录可用 USB；日常数据通信采用 Wi-Fi，先用 USB 电源供电。身体动作、集成电池、蓝牙和批量生产是后续选配，不是当前第一阶段前置条件。
 
+## 电脑上的屏幕表情预览
+
+P1 的电脑预览已实现，代码位于 [preview/](preview/README.md)：七态切换、自然眨眼、自动视线、鼠标跟随、平滑过渡、自动演示、暂停和参数导出。双击 `preview/index.html`，或从仓库根目录运行：
+
+```sh
+python3 -m http.server 8877 --bind 127.0.0.1 --directory preview
+```
+
+打开 http://127.0.0.1:8877 。这是纯本地演示，不连接 echo-agent；真实 S3 屏幕仍未验证。
+
 ## 下一步与项目约束
 
 先读 [NEXT_STEPS](docs/NEXT_STEPS.md) 和 [评审决策](docs/REVIEW.md)。本仓库 [AGENTS.md](AGENTS.md) 是 agent 接手约束；其余 Markdown 是产品规划、接口草案和证据记录，不能代替代码或实测。目标是 O-Week 展示；当前社团对接人和预算待定。
@@ -32,7 +42,7 @@ GitHub 项目仓库：[crystal574-star/builderspace-mascot](https://github.com/c
 
 ## 资料和代码位置
 
-本目录当前是协作与评审文档入口，尚未包含可构建的玩偶固件。下一步先写本地表情预览，并验证真实 echo 握手。
+本目录当前是协作与评审文档入口，尚未包含可构建的玩偶固件。已有本地表情预览；真实屏幕与 echo 握手仍需分别验证。
 
 原电脑的参考资料：
 

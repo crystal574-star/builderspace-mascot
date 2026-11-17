@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>BuilderSpace · 表情实验室</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="face-model.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <a class="brand" href="./" aria-label="BuilderSpace 表情实验室首页"><span class="brand-mark" aria-hidden="true">b<span>✦</span></span><span>BUILDERSPACE<span class="brand-sub">MASCOT EXPERIMENTS</span></span></a>
+      <span class="phase"><span></span>P1 · 屏幕表情预览</span>
+    </header>
+
+    <main>
+      <div class="intro"><div><p class="eyebrow">MEET YOUR LITTLE COMPANION</p><h1>先从一张有生命感的脸开始<span>。</span></h1><p class="intro-copy">眨眨眼，看看你。探索社团小伙伴的七种表情。</p></div><span class="edition">FACE LAB<br><b>001 / LOCAL DEMO</b></span></div>
+
+      <div class="workspace">
+        <section class="stage" aria-label="玩偶屏幕预览">
+          <div class="stage-top"><span class="tiny-label"><i></i>本地演示 · 未连接设备</span><button class="icon-button" id="fullscreen" aria-label="全屏显示表情" title="全屏显示表情"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button></div>
+          <div class="device-space">
+            <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><span class="spark spark-one" aria-hidden="true">✦</span><span class="spark spark-two" aria-hidden="true">+</span>
+            <div class="device">
+              <div class="device-top"><span>BUILDERSPACE</span><span class="device-dot"></span></div>
+              <div class="screen" id="screen" data-state="idle"><canvas id="face" width="320" height="240" role="img" aria-label="待机表情：平静眼睛，自然眨眼和移动视线">你的浏览器需要支持 Canvas 才能显示表情。</canvas></div>
+              <div class="device-bottom"><span class="speaker" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="device-id">BS / 01</span></div>
+            </div>
+            <span class="stage-caption">一块屏幕，一点性格。</span>
+          </div>
+          <div class="stage-bottom"><span><span class="live-dot"></span><span id="motion-status">自然动作已开启</span></span><span>320 × 240 <span class="divider">/</span> <span id="fps">—</span> <span class="fps-label">预览 FPS</span></span></div>
+        </section>
+
+        <section class="controls" aria-labelledby="states-title">
+          <div class="panel-heading"><div><p class="eyebrow">EXPRESSION LIBRARY</p><h2 id="states-title">它现在是什么心情？</h2></div><span class="state-count">07</span></div>
+          <div class="states" role="group" aria-label="七种表情状态" id="states"></div>
+          <div class="state-detail" id="state-detail" aria-live="polite" aria-atomic="true"><span class="detail-dot" id="detail-dot"></span><div><p><strong id="state-name">待机</strong><span id="state-code">idle</span></p><p id="state-description">安静地陪着你，偶尔眨眨眼、看看四周。</p></div></div>
+          <div class="panel-divider"></div>
+          <div class="motion-heading"><h3>给它一点小动作</h3><span>ANIMATION</span></div>
+          <label class="toggle-row" for="auto-blink"><span>自然眨眼<small>间隔眨眼，偶尔连眨两下</small></span><input type="checkbox" id="auto-blink" checked><span class="switch" aria-hidden="true"></span></label>
+          <label class="toggle-row" for="auto-look"><span>自动移动眼神<small>不操作时，也会看看周围</small></span><input type="checkbox" id="auto-look" checked><span class="switch" aria-hidden="true"></span></label>
+          <label class="toggle-row" for="follow-pointer"><span>眼神跟随鼠标<small>把鼠标移进屏幕，和它对视</small></span><input type="checkbox" id="follow-pointer" checked><span class="switch" aria-hidden="true"></span></label>
+          <button class="blink-button" id="blink-now"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10c4 6 14 6 18 0M6 13l-2 3m8-1v4m6-6 2 3"/></svg>眨一下眼<span>空格</span></button>
+        </section>
+      </div>
+
+      <section class="playback" aria-label="演示控制"><div class="playback-label"><span class="playback-icon" aria-hidden="true">↻</span><div><h3>让表情自己讲个小故事</h3><p>每 5 秒切换一种状态，按顺序认识它。</p></div></div><div class="playback-actions"><button id="cycle" class="primary-button" aria-pressed="false"><span class="play-symbol" aria-hidden="true">▶</span><span id="cycle-label">自动演示七态</span></button><button id="pause" class="secondary-button" aria-pressed="false">暂停动画</button></div></section>
+      <p class="notice" id="notice" role="status"></p>
+      <footer class="footer"><span><kbd>1</kbd>—<kbd>7</kbd> 切换表情 <span class="footer-dot">·</span> <kbd>空格</kbd> 眨眼</span><button id="export" class="text-button">导出表情参数 <span aria-hidden="true">↗</span></button></footer>
+      <p class="prototype-note">这是电脑端动画原型。机身造型与角色名称尚未定稿；预览帧率不代表真实屏幕性能。</p>
+    </main>
+  </div>
+</body>
+</html>
