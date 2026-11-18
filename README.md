@@ -26,6 +26,8 @@ python3 -m http.server 8877 --bind 127.0.0.1 --directory preview
 
 ## 完整版规划与协作文件
 
+- [EchoAgent Bot 表情、动态与样式全集](docs/ECHO_BOT_REFERENCE.md)：已确认的参考对象；具体玩偶设计仍需先与用户确认。现有预览视觉未获认可。
+
 - [完整版功能蓝图](docs/MASTER_PLAN.md)：用户确认的愿景、两种使用场景、全部模块与待决策项。
 - [各阶段实现方案](docs/PHASES.md)：P1–P7 的顺序、依赖、步骤和验收；P1 屏幕优先。
 - [分阶段购买清单](docs/PURCHASES.md)：已有物料、现在必买、后续采购门、预算和来源。
