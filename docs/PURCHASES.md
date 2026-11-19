@@ -1,6 +1,6 @@
 # 分阶段购买清单（评审修订版）
 
-更新：2026-11-17（悉尼）。一台样机，尚未下单。以下 AUD 均为预算占位，不是实时商家报价；运费、工具、主机、在线服务另计。社团预算尚未确认。P1 主控改为 S3，替代旧版“P4 再买 S3”的安排，不能重复计算。
+更新：2026-11-19（悉尼）。一台样机，尚未下单。以下 AUD 均为预算占位，不是实时商家报价；运费、工具、主机、在线服务另计。社团预算尚未确认。P1 主控改为 S3，替代旧版“P4 再买 S3”的安排，不能重复计算。
 
 ## 已有，继续保留
 
@@ -21,6 +21,25 @@ ESP32-C3 ×6、WS2812 灯带、面包板、杜邦线、WS2812B 2020 灯珠 ×80�
 小计 A$40–128，另计运费。只购一套，先核对板端标识/原理图再冻结 GPIO。P1 不要求同时买音频和外壳。
 
 屏幕横向可视约 40.8×30.6mm，PCB 58×35mm；先用纸片看脸大小。候选屏幕不是最终尺寸的永久承诺，也不包含摸头功能。
+
+下单前逐项核对（2026-11-19 按官方页面补充）：
+
+- 主控：商品标题和模组丝印都要是 N8R8（模组 `ESP32-S3-WROOM-1-N8R8`）。官方 v1.1 页面写明 UART 口是 Micro-USB，所需线材是 A 转 Micro-B；另一个 USB 口的接口类型页面没写。排针是否已焊，官方页面没写，看商品图。
+- 屏幕：微雪 Wiki 写明 3.3V/5V 供电、ST7789V、8 针 PH2.0 接口、最大约 46mA，并提醒供电电压要和信号电平一致。随附线的长度和另一端是什么头，Wiki 没写，看商品页的装箱清单；另一端不是杜邦母头时，要另配能插到开发板排针上的线。
+- 数据线：按电脑的接口选，要能传数据。电脑只有 USB-C 时，买 USB-C 转 Micro-USB 的数据线，或用转接头。
+- 现有的面包板和杜邦线先用着；电源直接用电脑的 USB 口，P1 不用另买。
+
+澳洲渠道（2026-11-19 网上搜到的页面信息，不是下单时的报价，库存以商家页面为准）：
+
+| 物料 | 商家 | 当时看到的 |
+| --- | --- | --- |
+| ESP32-S3-DevKitC-1-N8R8（乐鑫原厂） | [Core Electronics](https://core-electronics.com.au/esp32-s3-devkitc-1-n8r8-esp32-s3-wroom-1-8mb-flash-8mb-psram.html) | A$45.20 含税，缺货 |
+| 同上 | [Amazon AU](https://www.amazon.com.au/Espressif-ESP32-S3-DevKitC-1-N8R8-Development-Board/dp/B09MHP42LY) | 暂时无货 |
+| 微雪 ESP32-S3-DevKit N8R8（兼容板，不是原厂） | [Zaitronics](https://zaitronics.com.au/products/esp32-s3-devkit-development-board-n8r8) | A$24.50，库存状态页面上自相矛盾 |
+| 微雪 2inch LCD Module | [Amazon AU](https://www.amazon.com.au/2inch-LCD-Display-Module-IPS/dp/B081Q79X2F) | A$24.55 |
+| 同上 | [eBay AU](https://www.ebay.com.au/itm/394883401120) | 约 A$19.94 |
+
+买兼容板的话，USB 口、排针排列和板载灯的引脚都要按实物重新核对，接线图上的脚位编号不再适用，只按名字接。
 
 来源：[屏幕官方规格](https://docs.waveshare.net/2inch_LCD_Module/)、[S3 官方型号表](https://docs.espressif.com/projects/esp-idf/en/v5.0.3/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1.html)。N8 无 PSRAM，N8R2 为 2MB，不能把不同后缀当同一物料。
 
