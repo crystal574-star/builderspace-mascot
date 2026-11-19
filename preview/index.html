@@ -3,55 +3,95 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <title>BuilderSpace · 表情实验室</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="face-model.js" defer></script>
-  <script src="app.js" defer></script>
+  <meta name="color-scheme" content="dark">
+  <title>BuilderSpace 吉祥物 · 屏幕表情</title>
+  <link rel="stylesheet" href="styles.css?v=20261119b">
+  <script src="face-model.js?v=20261119b" defer></script>
+  <script src="app.js?v=20261119b" defer></script>
 </head>
 <body>
-  <div class="page">
-    <header class="header">
-      <a class="brand" href="./" aria-label="BuilderSpace 表情实验室首页"><span class="brand-mark" aria-hidden="true">b<span>✦</span></span><span>BUILDERSPACE<span class="brand-sub">MASCOT EXPERIMENTS</span></span></a>
-      <span class="phase"><span></span>P1 · 屏幕表情预览</span>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <canvas id="brand-bot" class="brand-bot" width="72" height="72" aria-hidden="true"></canvas>
+        <div><strong>BuilderSpace 吉祥物</strong><span>屏幕表情预览</span></div>
+      </div>
+      <div class="chips"><span class="chip">P1 · 电脑预览</span><span class="chip chip-quiet">未连接设备</span></div>
     </header>
 
-    <main>
-      <div class="intro"><div><p class="eyebrow">MEET YOUR LITTLE COMPANION</p><h1>先从一张有生命感的脸开始<span>。</span></h1><p class="intro-copy">眨眨眼，看看你。探索社团小伙伴的七种表情。</p></div><span class="edition">FACE LAB<br><b>001 / LOCAL DEMO</b></span></div>
+    <main class="layout">
+      <section class="stage" aria-label="玩偶屏幕">
+        <div class="screen-frame" id="frame">
+          <canvas id="screen" width="640" height="480" role="img" aria-label="玩偶屏幕上的表情">你的浏览器需要支持 Canvas 才能显示表情。</canvas>
+        </div>
 
-      <div class="workspace">
-        <section class="stage" aria-label="玩偶屏幕预览">
-          <div class="stage-top"><span class="tiny-label"><i></i>本地演示 · 未连接设备</span><button class="icon-button" id="fullscreen" aria-label="全屏显示表情" title="全屏显示表情"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button></div>
-          <div class="device-space">
-            <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><span class="spark spark-one" aria-hidden="true">✦</span><span class="spark spark-two" aria-hidden="true">+</span>
-            <div class="device">
-              <div class="device-top"><span>BUILDERSPACE</span><span class="device-dot"></span></div>
-              <div class="screen" id="screen" data-state="idle"><canvas id="face" width="320" height="240" role="img" aria-label="待机表情：平静眼睛，自然眨眼和移动视线">你的浏览器需要支持 Canvas 才能显示表情。</canvas></div>
-              <div class="device-bottom"><span class="speaker" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="device-id">BS / 01</span></div>
-            </div>
-            <span class="stage-caption">一块屏幕，一点性格。</span>
+        <div class="readout" aria-live="polite" aria-atomic="true">
+          <div class="readout-title"><h1 id="state-name">待机</h1><code id="state-code">idle</code><span class="badge" id="state-origin">原版</span></div>
+          <p id="state-description"></p>
+          <p class="readout-face">这张脸：<code id="face-key"></code></p>
+        </div>
+
+        <div class="transport">
+          <button id="cycle" class="button button-primary" aria-pressed="false"><span id="cycle-label">自动演示</span></button>
+          <button id="pause" class="button" aria-pressed="false">暂停</button>
+          <button id="blink-now" class="button">眨一下眼 <kbd>空格</kbd></button>
+          <button id="fullscreen" class="button">全屏</button>
+          <span class="fps"><span id="fps">—</span> 帧/秒（电脑）</span>
+        </div>
+
+        <div class="actual">
+          <canvas id="actual" width="320" height="240" aria-hidden="true"></canvas>
+          <p><strong>实际大小</strong>约 40.8 × 30.6 mm（2 英寸屏的可视区域）。浏览器按毫米显示，不同显示器会有出入，以实物为准。</p>
+        </div>
+      </section>
+
+      <aside class="panel" aria-label="设置">
+        <section class="group">
+          <header><h2>状态</h2><span>按 1–8 切换</span></header>
+          <div class="options options-states" id="states" role="group" aria-label="状态"></div>
+        </section>
+        <section class="group">
+          <header><h2>样式</h2><span>EchoAgent 的五种</span></header>
+          <div class="options" id="styles" role="group" aria-label="样式"></div>
+        </section>
+        <section class="group">
+          <header><h2>平时的脸</h2><span>待机时用哪张</span></header>
+          <div class="options" id="faces" role="group" aria-label="平时的脸"></div>
+        </section>
+        <section class="group">
+          <header><h2>配色</h2><span id="color-name"></span></header>
+          <div class="swatches" id="colors" role="group" aria-label="配色"></div>
+        </section>
+        <section class="group" id="shape-group">
+          <header><h2>身形</h2><span>屏幕里小人的轮廓</span></header>
+          <div class="options" id="shapes" role="group" aria-label="身形"></div>
+        </section>
+        <section class="group">
+          <header><h2>画面</h2><span>屏幕上放什么</span></header>
+          <div class="segments" id="modes" role="group" aria-label="画面"></div>
+          <div class="pair">
+            <div><h3>等你确认时</h3><div class="segments" id="waits" role="group" aria-label="等你确认时"></div></div>
+            <div><h3>做完了的特效</h3><div class="segments" id="effects" role="group" aria-label="做完了的特效"></div></div>
           </div>
-          <div class="stage-bottom"><span><span class="live-dot"></span><span id="motion-status">自然动作已开启</span></span><span>320 × 240 <span class="divider">/</span> <span id="fps">—</span> <span class="fps-label">预览 FPS</span></span></div>
         </section>
-
-        <section class="controls" aria-labelledby="states-title">
-          <div class="panel-heading"><div><p class="eyebrow">EXPRESSION LIBRARY</p><h2 id="states-title">它现在是什么心情？</h2></div><span class="state-count">07</span></div>
-          <div class="states" role="group" aria-label="七种表情状态" id="states"></div>
-          <div class="state-detail" id="state-detail" aria-live="polite" aria-atomic="true"><span class="detail-dot" id="detail-dot"></span><div><p><strong id="state-name">待机</strong><span id="state-code">idle</span></p><p id="state-description">安静地陪着你，偶尔眨眨眼、看看四周。</p></div></div>
-          <div class="panel-divider"></div>
-          <div class="motion-heading"><h3>给它一点小动作</h3><span>ANIMATION</span></div>
-          <label class="toggle-row" for="auto-blink"><span>自然眨眼<small>间隔眨眼，偶尔连眨两下</small></span><input type="checkbox" id="auto-blink" checked><span class="switch" aria-hidden="true"></span></label>
-          <label class="toggle-row" for="auto-look"><span>自动移动眼神<small>不操作时，也会看看周围</small></span><input type="checkbox" id="auto-look" checked><span class="switch" aria-hidden="true"></span></label>
-          <label class="toggle-row" for="follow-pointer"><span>眼神跟随鼠标<small>把鼠标移进屏幕，和它对视</small></span><input type="checkbox" id="follow-pointer" checked><span class="switch" aria-hidden="true"></span></label>
-          <button class="blink-button" id="blink-now"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10c4 6 14 6 18 0M6 13l-2 3m8-1v4m6-6 2 3"/></svg>眨一下眼<span>空格</span></button>
+        <section class="group">
+          <header><h2>动作</h2><span>可以逐项关掉</span></header>
+          <div class="toggles">
+            <label><input type="checkbox" id="blink" checked><span>眨眼</span></label>
+            <label><input type="checkbox" id="glance" checked><span>左右张望</span></label>
+            <label><input type="checkbox" id="breath" checked><span>呼吸</span></label>
+            <label><input type="checkbox" id="follow" checked><span>看鼠标</span></label>
+          </div>
         </section>
-      </div>
-
-      <section class="playback" aria-label="演示控制"><div class="playback-label"><span class="playback-icon" aria-hidden="true">↻</span><div><h3>让表情自己讲个小故事</h3><p>每 5 秒切换一种状态，按顺序认识它。</p></div></div><div class="playback-actions"><button id="cycle" class="primary-button" aria-pressed="false"><span class="play-symbol" aria-hidden="true">▶</span><span id="cycle-label">自动演示七态</span></button><button id="pause" class="secondary-button" aria-pressed="false">暂停动画</button></div></section>
-      <p class="notice" id="notice" role="status"></p>
-      <footer class="footer"><span><kbd>1</kbd>—<kbd>7</kbd> 切换表情 <span class="footer-dot">·</span> <kbd>空格</kbd> 眨眼</span><button id="export" class="text-button">导出表情参数 <span aria-hidden="true">↗</span></button></footer>
-      <p class="prototype-note">这是电脑端动画原型。机身造型与角色名称尚未定稿；预览帧率不代表真实屏幕性能。</p>
+        <button id="export" class="button button-wide">导出当前选择的参数（JSON）</button>
+        <p class="notice" id="notice" role="status"></p>
+      </aside>
     </main>
+
+    <footer class="footer">
+      <p>脸、样式、身形、配色和动作数值照 EchoAgent 刘海 Bot 的源码移植。标着「提议」的状态原版没有，等你确认。</p>
+      <p>这是电脑上的预览，不连接 echo-agent，也不代表真实屏幕的帧率和颜色。</p>
+    </footer>
   </div>
 </body>
 </html>

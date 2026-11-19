@@ -1,171 +1,184 @@
+/* 电脑预览的界面和时间调度。脸怎么画、怎么动都在 face-model.js；这里没有网络请求，也不接 echo-agent。 */
 (function () {
   'use strict';
-  const model = window.MascotFace;
+  const F = window.EchoBotFace;
   const $ = id => document.getElementById(id);
-  const canvas = $('face');
-  const ctx = canvas.getContext('2d');
-  if (!ctx) { $('notice').textContent = '浏览器未能创建绘图画布，请尝试更新后的浏览器。'; return; }
-  const animator = new model.Animator('idle');
-  const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let reduced = mediaQuery.matches;
-  let stateId = 'idle';
-  let clock = 0;
-  let previousFrame = null;
-  let paused = false;
-  let cycling = false;
-  let cycleStarted = 0;
-  let blinkStarted = -Infinity;
-  let nextBlink = 2300;
-  let blinkNumber = 0;
-  let pointer = null;
-  let gaze = { x: 0, y: 0 };
-  let fpsFrames = 0;
-  let fpsStarted = null;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const options = { ...F.DEFAULTS, blink: !reduced, glance: !reduced, breath: !reduced };
+  let follow = !reduced, cycleTimer = null;
+  const animator = new F.BotAnimator(options);
+  const createCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const env = { px: 2, createCanvas };
 
-  const icons = {
-    idle: '<path d="M5 8v5m8-5v5m-7 4q3 2 6 0"/>',
-    listening: '<path d="M5 6v7m8-7v7"/><ellipse cx="9" cy="17" rx="1.8" ry="2"/>',
-    working: '<path d="M3 9h4m4 0h4m-9 7h.01m3 0h.01m3 0h.01"/>',
-    waiting: '<path d="M4 6h3m5 3h3M5 10v3m8-1v3m-6 3h4"/>',
-    done: '<path d="M3 11q2-5 4 0m4 0q2-5 4 0M6 16q3 4 6 0"/>',
-    failed: '<path d="m3 7 4 2m5 0 4-2M5 11v2m9-2v3m-7 5q3-3 6 0"/>',
-    offline: '<path d="M3 12h4m4 0h4m-7 5h3"/>'
-  };
-  const buttons = new Map();
-  for (const [index, state] of model.states.entries()) {
+  const screen = $('screen'), sctx = screen.getContext('2d');
+  const actual = $('actual'), actx = actual.getContext('2d');
+  const MODES = [['bot', '整只 Bot'], ['face', '脸铺满屏幕']];
+  const WAITS = [['wave', '招手'], ['bang', '感叹号']];
+  const EFFECTS = [['confetti', '撒彩屑'], ['stars', '冒星星'], ['check', '对勾']];
+  const thumbs = [];
+
+  /** 一格缩略图：小画布上画一只不动的 Bot。 */
+  function thumb(canvas, overrides) {
+    const draw = () => {
+      const ctx = canvas.getContext('2d'), side = canvas.width;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, side, side);
+      const scene = F.staticScene({ ...options, state: 'idle', mode: 'bot', ...overrides() });
+      // 留出手、感叹号、z、天线的地方
+      const size = side * 0.7;
+      F.drawBot(ctx, scene, side * 0.1, side * 0.24, size, { px: 1, createCanvas });
+    };
+    thumbs.push(draw);
+    return draw;
+  }
+  function optionButton(group, value, label, extra) {
     const button = document.createElement('button');
-    button.className = 'state-button';
-    button.type = 'button';
-    button.dataset.state = state.id;
-    button.style.setProperty('--state-color', state.color);
-    button.setAttribute('aria-label', `${index + 1} ${state.label} ${state.id}`);
-    button.setAttribute('aria-pressed', String(state.id === stateId));
-    button.innerHTML = `<span class="state-face" aria-hidden="true"><svg viewBox="0 0 18 23">${icons[state.id]}</svg></span><span><b>${state.label}</b><small>${state.id}</small></span><kbd aria-hidden="true">${index + 1}</kbd>`;
-    button.addEventListener('click', () => select(state.id));
-    buttons.set(state.id, button);
-    $('states').append(button);
+    button.type = 'button'; button.className = 'option'; button.dataset.group = group; button.dataset.value = value;
+    const canvas = createCanvas(128, 128);
+    button.append(canvas);
+    const text = document.createElement('span'); text.textContent = label; button.append(text);
+    if (extra && extra.code) { const small = document.createElement('small'); small.textContent = extra.code; button.append(small); }
+    if (extra && extra.proposed) { const dot = document.createElement('i'); dot.className = 'dot'; dot.title = '提议，等你确认'; button.append(dot); button.setAttribute('aria-label', `${label}（提议，等你确认）`); }
+    return { button, canvas };
+  }
+  function segment(group, value, label) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'segment'; button.dataset.group = group; button.dataset.value = value; button.textContent = label;
+    return button;
   }
 
-  function select(id) {
-    const state = animator.setState(id, clock, reduced || paused ? 0 : 420);
-    stateId = state.id;
-    for (const [key, button] of buttons) button.setAttribute('aria-pressed', String(key === stateId));
+  F.STATES.forEach((state, index) => {
+    const { button, canvas } = optionButton('state', state.id, state.label, { code: String(index + 1), proposed: state.proposed });
+    thumb(canvas, () => ({ state: state.id }));
+    $('states').append(button);
+  });
+  F.STYLE_ORDER.forEach(id => {
+    const { button, canvas } = optionButton('style', id, F.STYLES[id].name);
+    thumb(canvas, () => ({ style: id }));
+    $('styles').append(button);
+  });
+  F.RESTING.forEach(name => {
+    const { button, canvas } = optionButton('face', name, F.FACE_NAMES[name]);
+    thumb(canvas, () => ({ face: name }));
+    $('faces').append(button);
+  });
+  F.SHAPE_ORDER.forEach(id => {
+    const { button, canvas } = optionButton('shape', id, F.SHAPES[id].name);
+    thumb(canvas, () => ({ shape: id }));
+    $('shapes').append(button);
+  });
+  Object.entries(F.TONES).forEach(([id, tones]) => {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'swatch'; button.dataset.group = 'color'; button.dataset.value = id;
+    button.setAttribute('aria-label', tones.name); button.title = tones.name;
+    const chip = document.createElement('i'); chip.style.background = `linear-gradient(160deg, ${tones.light}, ${tones.base} 45%, ${tones.dark})`;
+    button.append(chip); $('colors').append(button);
+  });
+  MODES.forEach(([value, label]) => $('modes').append(segment('mode', value, label)));
+  WAITS.forEach(([value, label]) => $('waits').append(segment('waitLook', value, label)));
+  EFFECTS.forEach(([value, label]) => $('effects').append(segment('doneEffect', value, label)));
+  const brand = thumb($('brand-bot'), () => ({}));
+
+  function refresh() {
+    const applied = animator.set(options);
+    Object.assign(options, applied);
+    const state = F.lookupState(options.state), tones = F.tonesOf(options.color);
+    document.querySelectorAll('[data-group]').forEach(button => button.setAttribute('aria-pressed', String(options[button.dataset.group] === button.dataset.value)));
+    const root = document.documentElement.style;
+    root.setProperty('--accent', tones.base); root.setProperty('--accent-light', tones.light); root.setProperty('--accent-dark', tones.dark);
     $('state-name').textContent = state.label;
     $('state-code').textContent = state.id;
+    $('state-origin').textContent = state.proposed ? '提议 · 等你确认' : state.origin;
+    $('state-origin').dataset.kind = state.proposed ? 'proposed' : 'original';
     $('state-description').textContent = state.description;
-    $('detail-dot').style.background = state.color;
-    $('screen').dataset.state = state.id;
-    canvas.setAttribute('aria-label', `${state.label}表情：${state.description}`);
-    document.title = `${state.label} · BuilderSpace 表情实验室`;
-    cycleStarted = clock;
+    $('face-key').textContent = F.lookKey(F.lookNow(options));
+    $('color-name').textContent = `${tones.name} ${tones.base}`;
+    $('shape-group').hidden = options.mode === 'face';
+    screen.setAttribute('aria-label', `玩偶屏幕：${state.label}，${F.STYLES[options.style].name}样式`);
+    document.title = `${state.label} · BuilderSpace 吉祥物`;
+    thumbs.forEach(draw => draw());
   }
+  function choose(group, value) {
+    options[group] = value;
+    if (group === 'state' && cycleTimer) scheduleCycle();
+    refresh();
+  }
+  document.addEventListener('click', event => {
+    const button = event.target.closest('[data-group]');
+    if (button) choose(button.dataset.group, button.dataset.value);
+  });
+  for (const id of ['blink', 'glance', 'breath']) {
+    $(id).checked = options[id];
+    $(id).addEventListener('change', event => { options[id] = event.target.checked; refresh(); });
+  }
+  $('follow').checked = follow;
+  $('follow').addEventListener('change', event => { follow = event.target.checked; if (!follow) animator.lookAt(null); });
 
-  function updateMotionLabel() {
-    const hasMovement = $('auto-blink').checked || $('auto-look').checked || $('follow-pointer').checked;
-    $('motion-status').textContent = paused ? '动画已暂停' : hasMovement ? '自然动作已开启' : '静态表情预览';
+  // 看鼠标：照原版，往光标那边挪，横 2.6、竖 1.9 格，离得近时按距离 / 120 缩小
+  screen.addEventListener('pointermove', event => {
+    if (!follow) return;
+    const rect = screen.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width * F.SCREEN.width, y = (event.clientY - rect.top) / rect.height * F.SCREEN.height;
+    const dx = x - 160, dy = y - (options.mode === 'face' ? 120 : F.BOT_BOX.y + F.BOT_BOX.size / 2), distance = Math.hypot(dx, dy);
+    if (distance < 0.5) return;
+    const f = Math.min(1, distance / 120);
+    animator.lookAt({ x: dx / distance * 2.6 * f, y: dy / distance * 1.9 * f });
+  });
+  screen.addEventListener('pointerleave', () => animator.lookAt(null));
+  screen.addEventListener('pointerdown', () => animator.press());
+
+  function scheduleCycle() {
+    clearInterval(cycleTimer);
+    cycleTimer = setInterval(() => {
+      const index = F.STATES.findIndex(state => state.id === options.state);
+      options.state = F.STATES[(index + 1) % F.STATES.length].id;
+      refresh();
+    }, 4000);
   }
-  function triggerBlink() {
-    if (paused) return;
-    blinkStarted = clock;
-    nextBlink = clock + 3500;
-  }
-  $('blink-now').addEventListener('click', triggerBlink);
-  for (const id of ['auto-blink', 'auto-look', 'follow-pointer']) $(id).addEventListener('change', () => {
-    if (id === 'auto-blink') { blinkStarted = -Infinity; nextBlink = clock + 2300; }
-    updateMotionLabel();
+  $('cycle').addEventListener('click', () => {
+    if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null; } else scheduleCycle();
+    $('cycle').setAttribute('aria-pressed', String(Boolean(cycleTimer)));
+    $('cycle-label').textContent = cycleTimer ? '停止演示' : '自动演示';
   });
   $('pause').addEventListener('click', () => {
-    paused = !paused;
-    $('pause').textContent = paused ? '继续动画' : '暂停动画';
-    $('pause').setAttribute('aria-pressed', String(paused));
-    $('blink-now').disabled = paused;
-    updateMotionLabel();
+    animator.paused = !animator.paused;
+    $('pause').setAttribute('aria-pressed', String(animator.paused));
+    $('pause').textContent = animator.paused ? '继续' : '暂停';
   });
-  $('cycle').addEventListener('click', () => {
-    cycling = !cycling;
-    cycleStarted = clock;
-    $('cycle').setAttribute('aria-pressed', String(cycling));
-    $('cycle-label').textContent = cycling ? '停止自动演示' : '自动演示七态';
-    $('cycle').querySelector('.play-symbol').textContent = cycling ? '■' : '▶';
-  });
-  canvas.addEventListener('pointermove', event => {
-    const rect = canvas.getBoundingClientRect();
-    pointer = { x: model.clamp((event.clientX - rect.left) / rect.width * 2 - 1, -1, 1), y: model.clamp((event.clientY - rect.top) / rect.height * 2 - 1, -1, 1) };
-  });
-  canvas.addEventListener('pointerleave', () => { pointer = null; });
-  canvas.addEventListener('pointercancel', () => { pointer = null; });
-  window.addEventListener('blur', () => { pointer = null; });
-  document.addEventListener('keydown', event => {
-    if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
-    if (event.target.closest('input, select, textarea, [contenteditable]')) return;
-    if (/^[1-7]$/.test(event.key)) { event.preventDefault(); select(model.states[Number(event.key) - 1].id); }
-    // Space retains normal keyboard activation when a control has focus.
-    if (event.code === 'Space' && !event.target.closest('button, a')) { event.preventDefault(); triggerBlink(); }
-  });
-  $('fullscreen').disabled = !document.fullscreenEnabled;
-  $('fullscreen').addEventListener('click', async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await $('screen').requestFullscreen();
-    } catch { $('notice').textContent = '浏览器没有开启全屏；你仍然可以在当前页面查看表情。'; }
+  $('blink-now').addEventListener('click', () => animator.blinkNow());
+  $('fullscreen').addEventListener('click', () => {
+    const frame = $('frame');
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (frame.requestFullscreen) frame.requestFullscreen().catch(() => { $('notice').textContent = '这个浏览器不允许全屏。'; });
+    else $('notice').textContent = '这个浏览器不支持全屏。';
   });
   $('export').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(model.exportParameters(), null, 2) + '\n'], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    const blob = new Blob([JSON.stringify(F.exportParameters(options), null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
-    link.href = url;
-    link.download = 'builderspace-face-parameters-v1.json';
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    $('notice').textContent = '已导出表情参数，可交给固件负责人参考；它不是屏幕接线配置或设备协议。';
+    link.href = URL.createObjectURL(blob); link.download = 'builderspace-face-parameters.json';
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    $('notice').textContent = '已导出 builderspace-face-parameters.json。';
+  });
+  document.addEventListener('keydown', event => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const index = Number(event.key) - 1;
+    if (Number.isInteger(index) && index >= 0 && index < F.STATES.length) { choose('state', F.STATES[index].id); return; }
+    if (event.key === ' ' && !event.target.closest('button, input, a')) { event.preventDefault(); animator.blinkNow(); }
   });
 
-  function applyMotionPreference() {
-    reduced = mediaQuery.matches;
-    $('auto-blink').checked = !reduced;
-    $('auto-look').checked = !reduced;
-    $('follow-pointer').checked = !reduced;
-    blinkStarted = -Infinity;
-    gaze = { x: 0, y: 0 };
-    animator.setState(stateId, clock, 0);
-    if (reduced) $('notice').textContent = '已遵循系统“减少动态效果”设置。你可以自行开启动作，或点击“眨一下眼”。';
-    else if ($('notice').textContent.startsWith('已遵循系统')) $('notice').textContent = '';
-    updateMotionLabel();
-  }
-  mediaQuery.addEventListener('change', applyMotionPreference);
-  applyMotionPreference();
-  document.addEventListener('visibilitychange', () => { previousFrame = null; fpsStarted = null; fpsFrames = 0; });
-
-  function frame(timestamp) {
-    const delta = previousFrame === null ? 0 : Math.min(100, timestamp - previousFrame);
-    previousFrame = timestamp;
-    if (!paused && !document.hidden) clock += delta;
-    if (cycling && !paused && clock - cycleStarted >= 5000) {
-      const current = model.states.findIndex(state => state.id === stateId);
-      select(model.states[(current + 1) % model.states.length].id);
-    }
-    if (!paused) {
-      if ($('auto-blink').checked && clock >= nextBlink) {
-        blinkStarted = clock;
-        blinkNumber++;
-        nextBlink = clock + (blinkNumber % 5 === 0 ? 340 : 3100 + blinkNumber % 3 * 620);
-      }
-      const target = $('follow-pointer').checked && pointer ? pointer : $('auto-look').checked ? model.naturalGaze(clock) : { x: 0, y: 0 };
-      const amount = 1 - Math.exp(-delta / 115);
-      gaze = { x: gaze.x + (target.x - gaze.x) * amount, y: gaze.y + (target.y - gaze.y) * amount };
-    }
-    model.draw(ctx, animator.sample(clock), { now: reduced ? 0 : clock, gaze, blink: model.blinkAmount(clock - blinkStarted) });
-    if (fpsStarted === null) fpsStarted = timestamp;
-    fpsFrames++;
-    if (timestamp - fpsStarted >= 1000) {
-      $('fps').textContent = String(Math.round(fpsFrames * 1000 / (timestamp - fpsStarted)));
-      fpsStarted = timestamp;
-      fpsFrames = 0;
-    }
+  let frames = 0, since = performance.now();
+  function frame(now) {
+    const scene = animator.frame(now / 1000);
+    sctx.setTransform(env.px, 0, 0, env.px, 0, 0);
+    F.draw(sctx, scene, env);
+    actx.setTransform(1, 0, 0, 1, 0, 0);
+    actx.drawImage(screen, 0, 0, actual.width, actual.height);
+    frames++;
+    if (now - since >= 1000) { $('fps').textContent = String(Math.round(frames * 1000 / (now - since))); frames = 0; since = now; }
     requestAnimationFrame(frame);
   }
-  select('idle');
+  refresh();
+  brand();
   requestAnimationFrame(frame);
 })();

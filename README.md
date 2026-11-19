@@ -12,7 +12,7 @@ GitHub 项目仓库：[crystal574-star/builderspace-mascot](https://github.com/c
 
 ## 电脑上的屏幕表情预览
 
-P1 的电脑预览已实现，代码位于 [preview/](preview/README.md)：七态切换、自然眨眼、自动视线、鼠标跟随、平滑过渡、自动演示、暂停和参数导出。双击 `preview/index.html`，或从仓库根目录运行：
+P1 的电脑预览位于 [preview/](preview/README.md)，2026-11-19 起改用 EchoAgent 刘海 Bot 的表情：原版 11 张脸、5 种样式、4 种身形、8 套配色和动作，可在页面上切换对照；样式等尚待用户选定。从仓库根目录运行：
 
 ```sh
 python3 -m http.server 8877 --bind 127.0.0.1 --directory preview
@@ -26,7 +26,7 @@ python3 -m http.server 8877 --bind 127.0.0.1 --directory preview
 
 ## 完整版规划与协作文件
 
-- [EchoAgent Bot 表情、动态与样式全集](docs/ECHO_BOT_REFERENCE.md)：已确认的参考对象；具体玩偶设计仍需先与用户确认。现有预览视觉未获认可。
+- [EchoAgent Bot 表情、动态与样式全集](docs/ECHO_BOT_REFERENCE.md)：表情的来源盘点；预览已照它实现，用哪一套仍需用户选定。
 
 - [完整版功能蓝图](docs/MASTER_PLAN.md)：用户确认的愿景、两种使用场景、全部模块与待决策项。
 - [各阶段实现方案](docs/PHASES.md)：P1–P7 的顺序、依赖、步骤和验收；P1 屏幕优先。
